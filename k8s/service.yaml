@@ -35,3 +35,20 @@ spec:
       port: 5000
       targetPort: 5000
 ---
+kind: Service
+apiVersion: v1
+metadata:
+  name: library
+  namespace: demo
+  labels:
+    app: library
+    service: library
+spec:
+  type: ClusterIP
+  selector:
+    app: library
+  ports:
+    - name: http
+      protocol: TCP
+      port: 5000
+      targetPort: 8000
