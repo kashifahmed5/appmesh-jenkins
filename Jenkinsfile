@@ -4,10 +4,10 @@ pipeline {
     environment {
         dockerImage_books = ""
         dockerImage_users = ""
-        
+        dockerImage_library = ""
         BOOK_REGISTRY = "737971166371.dkr.ecr.us-east-1.amazonaws.com/books"
         USER_REGISTRY = "737971166371.dkr.ecr.us-east-1.amazonaws.com/users"
-        
+        LIBRARY_REGISTRY = "737971166371.dkr.ecr.us-east-1.amazonaws.com/library"
         PROFILE = 'deploy'
         AWS_REGION = 'us-east-1'
         REGISTRY_CREDENTIALS = 'AWS-Access'
@@ -83,12 +83,28 @@ pipeline {
                         }
                     }
                 }
-                
+                stage("Build Library Application"){
+                    steps {
+                        script {
+                            dir("application-three") {
+                                dockerImage_library =  docker.build("${LIBRARY_REGISTRY}" + ":${env.BUILD_NUMBER}")
+                            }
+                        }
+                    }
+                }
             }
         }
         stage ("Docker Push") {
             parallel {
-                
+                stage("Push Library Application"){
+                    steps {
+                        script {
+                            docker.withRegistry("https://" + "${LIBRARY_REGISTRY}", "ecr:us-east-1:" + "${REGISTRY_CREDENTIALS}") {
+                                dockerImage_library.push()
+                            }
+                        }
+                    }
+                }
                 stage("Push Book Application"){
                     steps {
                         script {
@@ -124,7 +140,7 @@ pipeline {
                                     sh("""
                                     export USER_REGISTRY=$USER_REGISTRY
                                     export BOOK_REGISTRY=$BOOK_REGISTRY
-                                    
+                                    export LIBRARY_REGISTRY=$LIBRARY_REGISTRY
                                     export IMAGE_TAG=${env.BUILD_NUMBER}
                                     export DOMAIN_NAME=$LB_DOMAIN_NAME
                                     kubectl apply -f namespace.yaml
